@@ -13,10 +13,13 @@ No prior DevOps knowledge needed. If you can read this sentence, you can underst
 4. [Kubernetes Nodes](#4-kubernetes-nodes)
 5. [Kubernetes Pods](#5-kubernetes-pods)
 6. [Kubernetes Deployment](#6-kubernetes-deployment)
-7. [How everything connects (A → Z recap)](#7-how-everything-connects-a--z-recap)
-8. [Quick Glossary (A–Z)](#8-quick-glossary-az)
-9. [Basic Commands to Try](#9-basic-commands-to-try)
-10. [References](#10-references)
+7. [What does "K8s" mean?](#7-what-does-k8s-mean)
+8. [Enable Kubernetes in Docker Desktop](#8-enable-kubernetes-in-docker-desktop)
+9. [Your First Kubernetes Namespace](#9-your-first-kubernetes-namespace)
+10. [How everything connects (A → Z recap)](#10-how-everything-connects-a--z-recap)
+11. [Quick Glossary (A–Z)](#11-quick-glossary-az)
+12. [Basic Commands to Try](#12-basic-commands-to-try)
+13. [References](#13-references)
 
 ---
 
@@ -182,7 +185,142 @@ That's it — Kubernetes takes it from here.
 
 ---
 
-## 7. How everything connects (A → Z recap)
+## 7. What does "K8s" mean?
+
+You will see Kubernetes written as **"K8s"** everywhere (in docs, tools, job titles). It looks strange, but it's simple:
+
+> Take the word **K**ubernete**s** → keep the first letter **K** → keep the last letter **s** → count the letters in between (**u-b-e-r-n-e-t-e** = **8 letters**) → put the number in the middle.
+>
+> **K** + **8** + **s** = **K8s**
+
+This shortcut style is called a **"numeronym"** — the same trick used for **i18n** (internationalization) and **a11y** (accessibility).
+
+| Term | Meaning |
+|---|---|
+| **Kubernetes** | The full, official name. Comes from the Greek word for "helmsman" or "pilot" (the person who steers a ship) — that's also why its logo is a ship's steering wheel. |
+| **K8s** | Just a short nickname for Kubernetes. Exactly the same thing — nothing extra, nothing different. |
+| **Kube** | An even shorter, casual nickname people say out loud (e.g., "kube-config", "mini-kube"). |
+
+💡 So if someone says *"we deployed it on K8s"*, they simply mean *"we deployed it on Kubernetes."*
+
+---
+
+## 8. Enable Kubernetes in Docker Desktop
+
+You don't need a real server or the cloud to learn Kubernetes. If you have **Docker Desktop** installed on Windows, Mac, or Linux, it already comes with a built-in, real, single-node Kubernetes cluster — you just need to switch it on.
+
+![Enable Kubernetes in Docker Desktop](images/06-enable-kubernetes-docker-desktop.png)
+
+### Step-by-step:
+
+1. **Open Docker Desktop** on your computer.
+2. Click the **Settings (⚙️ gear icon)** in the top-right corner.
+3. Click the **"Kubernetes"** tab on the left-hand menu.
+4. Tick the checkbox **"Enable Kubernetes"**.
+5. Click **"Apply & Restart"**.
+6. Wait a few minutes — Docker Desktop downloads the Kubernetes components and starts them. When you see a **green status dot / "Kubernetes running"** message, you're ready.
+
+### Confirm it worked:
+
+```bash
+kubectl version         # should show both Client and Server versions
+kubectl get nodes        # should show one node named "docker-desktop", STATUS = Ready
+```
+
+If you see a `Ready` node, congratulations — you now have a real Kubernetes cluster running on your own laptop. 🎉
+
+---
+
+## 9. Your First Kubernetes Namespace
+
+### What is a Namespace? (Simple English)
+
+A **Namespace** is like a **labeled room inside your Kubernetes cluster house**. The house (cluster) doesn't get bigger — you're just drawing walls inside it, so your things don't get mixed up with someone else's things, or with Kubernetes' own internal files.
+
+Every cluster already comes with a few built-in namespaces:
+
+| Namespace | What lives there |
+|---|---|
+| `default` | Anything you create without picking a namespace lands here. |
+| `kube-system` | Kubernetes' own internal parts. Don't touch these. |
+| `kube-public` | Information that is readable by everyone in the cluster. |
+| `kube-node-lease` | Used internally to track whether nodes are alive. |
+
+You can also make your **own namespace** — for example, to keep a "learning" project separate from a "production" project on the same cluster.
+
+![Kubernetes Namespaces](images/07-kubernetes-namespace.png)
+
+### Step 1 — Write the namespace file
+
+Create a file named **`namespace.yaml`** with this content:
+
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: my-first-namespace
+  labels:
+    environment: learning
+```
+
+**In plain English, this file says:**
+- `apiVersion: v1` → use the basic/core Kubernetes API.
+- `kind: Namespace` → I am creating a Namespace (a "room"), not a Pod or a Deployment.
+- `metadata.name` → call this room `my-first-namespace`.
+- `labels` → stick a sticky-note tag on it saying `environment: learning`, so it's easy to find/filter later.
+
+This exact file is included in this repo as [`namespace.yaml`](namespace.yaml).
+
+### Step 2 — Apply it (create it in your cluster)
+
+```bash
+kubectl apply -f namespace.yaml
+```
+
+You should see:
+
+```
+namespace/my-first-namespace created
+```
+
+### Step 3 — Verify it exists
+
+```bash
+kubectl get namespaces
+# short form:
+kubectl get ns
+```
+
+You should now see `my-first-namespace` listed alongside `default`, `kube-system`, etc., with `STATUS = Active`.
+
+For more detail:
+
+```bash
+kubectl describe namespace my-first-namespace
+```
+
+This prints the labels, status, and any resource limits attached to it.
+
+### Step 4 — Use your new namespace
+
+Now you can run apps *inside* this room specifically:
+
+```bash
+kubectl get pods -n my-first-namespace          # list pods only in this namespace
+kubectl apply -f deployment.yaml -n my-first-namespace   # deploy something into it
+```
+
+### Step 5 — Delete it (cleanup, if needed)
+
+```bash
+kubectl delete namespace my-first-namespace
+```
+
+⚠️ This deletes **everything inside that namespace** too (pods, deployments, etc.) — use with care.
+
+---
+
+## 10. How everything connects (A → Z recap)
 
 ```
 YOU  →  write a YAML file  ("I want 3 copies of my app")
@@ -205,7 +343,7 @@ DEPLOYMENT  →  watches over all of the above, forever,
 
 ---
 
-## 8. Quick Glossary (A–Z)
+## 11. Quick Glossary (A–Z)
 
 | Term | Plain English Meaning |
 |---|---|
@@ -232,7 +370,7 @@ DEPLOYMENT  →  watches over all of the above, forever,
 
 ---
 
-## 9. Basic Commands to Try
+## 12. Basic Commands to Try
 
 ```bash
 kubectl version                    # check kubectl & cluster version
@@ -244,11 +382,16 @@ kubectl describe pod <pod-name>    # see full details of a pod
 kubectl logs <pod-name>            # view a pod's logs
 kubectl scale deployment my-first-app --replicas=5   # scale up/down
 kubectl delete -f deployment.yaml  # remove what you created
+
+kubectl get namespaces             # list all namespaces
+kubectl create namespace demo      # create a namespace without a file
+kubectl describe ns my-first-namespace   # full details of a namespace
+kubectl delete namespace demo      # delete a namespace (and everything in it)
 ```
 
 ---
 
-## 10. References
+## 13. References
 
 All content here is a simplified explanation built on top of the **official Kubernetes documentation**:
 
